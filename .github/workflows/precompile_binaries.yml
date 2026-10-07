@@ -1,7 +1,6 @@
 on:
   push:
-    branches: [qunleashed]
-  workflow_dispatch:
+    tags: ['v*']
 
 name: Precompile Binaries
 
