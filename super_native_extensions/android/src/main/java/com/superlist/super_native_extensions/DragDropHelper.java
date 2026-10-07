@@ -97,8 +97,16 @@ public class DragDropHelper {
         }
     }
 
+    private Long dropHandlerId;
+
     void registerDropHandler(View view, long handlerId) {
-        if (view != null) {
+        dropHandlerId = handlerId;
+        attachDropHandler(view);
+    }
+
+    void attachDropHandler(View view) {
+        final Long handlerId = dropHandlerId;
+        if (view != null && handlerId != null) {
             view.setOnDragListener((v, event) -> onDrag(event, handlerId));
         }
     }
