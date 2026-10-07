@@ -10,7 +10,7 @@
 
 precompiled_binaries:
   # Uri prefix used when downloading prebuilt binaries.
-  url_prefix: https://github.com/superlistapp/super_native_extensions/releases/download/precompiled_
+  url_prefix: https://github.com/apfxtech/super_native_extensions/releases/download/precompiled_
 
   # Public key for verifying downloaded prebuilt binaries.
-  public_key: 3a257ef1c7d72d84225ac4658d24812ada50a7a7a8a2138c2a91353389fdc514
+  public_key: 5ec52fdade08f1809bbe5db00a4dfb25418f487ef5ac55c3a3ed0e79d3e12a18
