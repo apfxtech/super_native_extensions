@@ -20,18 +20,24 @@ jobs:
       matrix:
         os:
           - ubuntu-22.04
+          - ubuntu-22.04-arm
           - macOS-latest
           - windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dart-lang/setup-dart@v1
       - uses: mlugg/setup-zig@v2
-        if: (matrix.os == 'ubuntu-22.04')
+        if: startsWith(matrix.os, 'ubuntu')
         with:
           version: 0.13.0
       - name: Install GTK
-        if: (matrix.os == 'ubuntu-22.04')
+        if: startsWith(matrix.os, 'ubuntu')
         run: sudo apt-get update && sudo apt-get install libgtk-3-dev
+      - name: Install Rust
+        if: (matrix.os == 'ubuntu-22.04-arm')
+        run: |
+          command -v rustup || curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
       - name: Install Android NDK
         if: (matrix.os == 'ubuntu-22.04')
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$ANDROID_NDK_VERSION" > /dev/null
@@ -46,46 +52,10 @@ jobs:
           export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS="-C link-args=-L$ZIG_SYSTEM_LIB_DIR"
           dart run build_tool precompile-binaries -v --manifest-dir=../../rust --repository=${{ github.repository }} --android-sdk-location="$ANDROID_HOME" --android-ndk-version=$ANDROID_NDK_VERSION --android-min-sdk-version=23 --glibc-version=2.31
         working-directory: super_native_extensions/cargokit/build_tool
-
-  PrecompileCross:
-    runs-on: ubuntu-22.04
-    name: Precompile (${{ matrix.distro }} ${{ matrix.arch }})
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - arch: aarch64
-            distro: ubuntu22.04
-            target: aarch64-unknown-linux-gnu
-            dart_arch: arm64
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Precompile
-        uses: uraimo/run-on-arch-action@v3
-        with:
-          arch: ${{ matrix.arch }}
-          distro: ${{ matrix.distro }}
-          githubToken: ${{ github.token }}
-          shell: /bin/bash
-
-          install: |
-            apt-get update -q -y
-            apt-get install -q -y libgtk-3-dev git curl unzip gcc
-            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-            curl -o dartsdk-linux-${{ matrix.dart_arch }}-release.zip https://storage.googleapis.com/dart-archive/channels/stable/release/latest/sdk/dartsdk-linux-${{ matrix.dart_arch }}-release.zip
-            unzip dartsdk-linux-${{ matrix.dart_arch }}-release.zip
-            mv dart-sdk /usr/lib/dart
-            curl -o zig.tar.xz https://ziglang.org/download/0.14.0/zig-linux-x86_64-0.14.0.tar.xz
-            tar -xf zig.tar.xz
-            mv zig-linux-x86_64-0.14.0 /usr/lib/zig
-
-          run: |
-            export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
-            export PRIVATE_KEY=${{ secrets.RELEASE_PRIVATE_KEY }}
-            export PATH="$PATH:/usr/lib/dart/bin:/usr/lib/zig"
-            export ZIG_SYSTEM_LIB_DIR="/usr/lib/aarch64-linux-gnu"
-            export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUSTFLAGS="-C link-args=-L$ZIG_SYSTEM_LIB_DIR"
-            cd super_native_extensions/cargokit/build_tool && dart run build_tool precompile-binaries -v --manifest-dir=../../rust --repository=${{ github.repository }} --target ${{ matrix.target }} --glibc-version=2.31
+      - name: Precompile (Linux arm64)
+        if: (matrix.os == 'ubuntu-22.04-arm')
+        run: |
+          export ZIG_SYSTEM_LIB_DIR="/usr/lib/aarch64-linux-gnu"
+          export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUSTFLAGS="-C link-args=-L$ZIG_SYSTEM_LIB_DIR"
+          dart run build_tool precompile-binaries -v --manifest-dir=../../rust --repository=${{ github.repository }} --target=aarch64-unknown-linux-gnu --glibc-version=2.31
+        working-directory: super_native_extensions/cargokit/build_tool
